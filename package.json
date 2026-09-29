@@ -1,0 +1,24 @@
+{
+  "name": "log-twelve-gates",
+  "version": "0.2.0",
+  "description": "로그: 열두 시진의 문 — 2D 횡스크롤 픽셀 액션 플랫포머",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,css}\""
+  },
+  "dependencies": {
+    "zzfx": "^1.3.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "private": true,
+  "type": "module"
+}
