@@ -40,8 +40,8 @@ function drawGround() {
       ctx.fillRect(x, y, s.w, 3);
       ctx.fillStyle = '#39414a';
       for (let xx = x + 6; xx < x + s.w - 4; xx += 16) {
-        ctx.fillRect(xx, y + 8, 3, 3);
-        ctx.fillRect(xx, y + 16, 3, 3);
+        ctx.fillRect(xx, y + (s.h >= 20 ? 8 : 5), 3, 3);
+        if (s.h >= 20) ctx.fillRect(xx, y + 16, 3, 3);
       }
       ctx.fillStyle = '#c0452f';
       ctx.fillRect(x + s.w / 2 - 10, y + s.h - 6, 20, 4);
@@ -215,7 +215,7 @@ export function render() {
   else drawParticles(ctx, T.particle, rdt, $.t, W, H);
   drawOverlay(ctx, T.overlay, $.t, W, H);
   ctx.restore();
-  ctx.drawImage(vignette, 0, 0);
+  ctx.drawImage(vignette, 0, 0, W, H);
   if ($.p.noLamp && $.mode === 'game') {
     const g = ctx.createRadialGradient($.p.x - $.cam, $.p.y - 40, 60, $.p.x - $.cam, $.p.y - 40, 300);
     g.addColorStop(0, 'rgba(8,5,14,0)');

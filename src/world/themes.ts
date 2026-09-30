@@ -1706,9 +1706,12 @@ function drawSolidRaw(ctx: CanvasRenderingContext2D, s: Solid, x: number, T: The
     ctx.fillRect(x, y, s.w, s.h);
     ctx.fillStyle = P.top;
     ctx.fillRect(x, y, s.w, 3);
+    // 얇은 발판은 윗면 바로 아래에 작은 단청 띠를 둔다
+    const ty = s.h >= 20 ? y + s.h - 9 : y + 5,
+      th = s.h >= 20 ? 5 : 4;
     for (let i = 0, xx = x + 3; xx < x + s.w - 3; xx += 8, i++) {
       ctx.fillStyle = P.trim[i % P.trim.length];
-      ctx.fillRect(xx, y + s.h - 9, 6, 5);
+      ctx.fillRect(xx, ty, 6, th);
     }
     ctx.strokeStyle = INK;
     ctx.lineWidth = 3;

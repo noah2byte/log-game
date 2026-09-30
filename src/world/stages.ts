@@ -23,10 +23,14 @@ export function warpStage(i) {
 
 // ---- 동선 규칙 ----
 // 로그의 키는 78px, 점프 최고 높이는 약 125px다. 발판은 이 두 숫자에서 역산한 규칙으로만 놓는다.
-const WALK_CLEAR = 84; // 발판 밑을 걸어서 지나가려면 발판 아랫면이 땅에서 이만큼 떨어져 있어야 한다
-const REACH_UP = 118; // 제자리에서 뛰어 올라설 수 있는 최대 높이(여유 포함)
-const STEP_Y = 110; // 층층 발판 사이 간격: 아래 층을 걸을 수 있고(84), 위 층에 뛰어오를 수 있는(118) 값
-const PLAT_H = 24;
+const WALK_CLEAR = 84; // 발판 밑을 걸어서 지나가려면 발판 아랫면이 땅에서 이만큼 떨어져 있어야 한다(키 78 + 여유)
+// 점프 최고 높이는 약 125px지만, 그건 점프 키를 끝까지 누르고 있을 때의 이론값이다.
+// 처음엔 118까지 허용했더니 실제로는 거의 올라설 수 없는 발판이 생겼다(인시). 누구나 편하게 오르는 80% 선으로 낮췄다
+const REACH_UP = 100;
+const STEP_Y = 100; // 층층 발판 간격: 위 층에 오를 수 있고(100), 아래 층 위를 걸을 수 있는(100-12=88≥84) 값
+const MAX_STEP = 40; // 이웃한 땅 조각의 높이 차. 구덩이를 건너며 동시에 오르는 경우를 생각해 넉넉히 잡았다
+// 발판 두께. 24px이면 '밑으로 걷기(아랫면 84 이상)'와 '편하게 오르기(윗면 100 이하)'를 동시에 만족할 수 없어서 얇게 했다
+const PLAT_H = 12;
 function jumpReach(up) {
   // up만큼 높은 곳으로 건너뛸 수 있는 최대 수평 거리(몸통 폭 여유 포함)
   const JV_ = 760,
@@ -34,7 +38,8 @@ function jumpReach(up) {
     RUN_ = 270;
   if (up > REACH_UP) return 0;
   const td = (JV_ + Math.sqrt(Math.max(0, JV_ * JV_ - 2 * G_ * Math.max(0, up)))) / G_;
-  return RUN_ * td * 0.9 + 30;
+  // 이론 거리의 75%만 쓴다. 최고 속도로 가장자리 끝에서 뛰어야만 닿는 구덩이는 사실상 못 건너는 구덩이다
+  return RUN_ * td * 0.75 + 20;
 }
 export function genStage(i) {
   // 테마마다 다른 규칙(땅 높이, 구덩이 폭, 발판 밀도, 징검돌·움직이는 발판·줄타기·장애물·계단)으로 지형을 만들되,
@@ -57,13 +62,13 @@ export function genStage(i) {
   while (x < L) {
     const w = Math.round(GP.seg[0] + R() * (GP.seg[1] - GP.seg[0]));
     let y = segs.length === 0 ? 460 : pick(GP.heights);
-    if (Math.abs(y - prevY) > 60) y = prevY + Math.sign(y - prevY) * 60;
+    if (Math.abs(y - prevY) > MAX_STEP) y = prevY + Math.sign(y - prevY) * MAX_STEP;
     if (segs.length) {
       // 앞 조각과의 구덩이 폭을 이번 조각 높이에 맞춰 건널 수 있는 만큼으로 줄인다
       const last = segs[segs.length - 1],
         gapStart = last[0] + last[2];
       const want = Math.round(GP.gap[0] + R() * (GP.gap[1] - GP.gap[0]) + Math.min(15, i * 1.5));
-      const gap = Math.min(want, Math.floor(jumpReach(prevY - y) - 16));
+      const gap = Math.min(want, Math.floor(jumpReach(prevY - y)));
       x = gapStart + gap;
       gapHelpers.push({ gx: gapStart, gap, aY: prevY, bY: y });
     }
@@ -106,9 +111,8 @@ export function genStage(i) {
         0,
         { move: { ax, sp: 0.9 + R() * 0.5, ph: R() * 6 } },
       ]);
-    } else if (GP.ropes && R() < GP.ropes) {
-      sol.push([gx - 30, hi - 112, gap + 60, 8, 0, { rope: true }]);
     }
+    // 줄타기는 뺐다. 구덩이 위에 걸면 구덩이를 건너뛰는 로그의 머리에 걸려 오히려 떨어뜨리기 때문이다
   }
   const segAt = (px) => segs.find((s) => px > s[0] + 40 && px < s[0] + s[2] - 40 && s[0] < x0 - 40);
   // 발판 아래(구간 전체)에서 가장 높은 땅. 구덩이 위면 null
@@ -124,8 +128,11 @@ export function genStage(i) {
     if (s[0] < 500 || s[0] > x0 - 400) continue;
     const n = Math.floor((s[2] / 1000) * GP.hurdles + R() * 0.8);
     for (let k = 0; k < n; k++) {
-      const hx = Math.round(s[0] + 120 + R() * Math.max(10, s[2] - 260));
-      if (nearHurdle(hx, 36, 110)) continue;
+      // 구덩이 가장자리 근처에는 두지 않는다. 장애물을 넘자마자 구덩이를 뛰어야 하면 도움닫기를 할 수 없다
+      if (s[2] < 460) continue;
+      const hx = Math.round(s[0] + 200 + R() * (s[2] - 400));
+      // 마지막 땅 조각은 보스 방까지 이어져 있어서, 범위를 따로 막지 않으면 보스 방 안에 장애물이 생긴다
+      if (hx > x0 - 300 || nearHurdle(hx, 36, 110)) continue;
       sol.push([hx, s[1] - 44, 36, 44, 0]);
       hurd.push([hx, s, 36]);
     }
@@ -137,7 +144,7 @@ export function genStage(i) {
     for (const s of segs) {
       if (made >= 3 || s[0] < 600 || s[0] > x0 - 500 || s[2] < 460 || R() > GP.stairs) continue;
       const px = Math.round(s[0] + 90 + R() * (s[2] - 460));
-      if (nearHurdle(px, 280, 60)) continue;
+      if (px + 280 > x0 - 300 || nearHurdle(px, 280, 60)) continue;
       [40, 80, 120, 80, 40].forEach((h, k) => sol.push([px + k * 56, s[1] - h, 56, h, 0]));
       hurd.push([px, s, 280]);
       made++;
@@ -146,11 +153,14 @@ export function genStage(i) {
   // 발판: 땅에서 108~118px(밑으로 걷고 위로 오를 수 있는 높이), 층층 발판은 110px 간격
   const overlapsPlat = (px, y, w) =>
     plats.some((q) => q[0] < px + w + 30 && q[0] + q[2] > px - 30 && Math.abs(q[1] - y) < STEP_Y - 4);
-  for (let px = 340; px < x0 - 380; px += Math.round(200 + R() * 150)) {
+  for (let px = 340; px < x0 - 380; px += Math.round(150 + R() * 120)) {
     if (R() > GP.plat) continue;
     const w = Math.round(110 + R() * 60);
-    const gy = groundUnder(px, w);
-    if (gy === null || nearHurdle(px, w)) continue;
+    // 발판 밑에서는 점프할 머리 공간이 거의 없다(아랫면이 로그 머리 바로 위). 그래서 점프가 필요한 곳 —
+    // 구덩이 가장자리, 장애물, 금화 더미 근처 — 위에는 발판을 두지 않고, 평평한 땅 한가운데에만 둔다
+    const seg = segs.find((q) => px >= q[0] + 150 && px + w <= q[0] + q[2] - 150 && q[0] < x0 - 40);
+    if (!seg || px + w > x0 - 200 || nearHurdle(px, w, 150)) continue;
+    const gy = seg[1];
     const y = gy - (WALK_CLEAR + PLAT_H) - Math.round(R() * (REACH_UP - WALK_CLEAR - PLAT_H));
     if (overlapsPlat(px, y, w)) continue;
     const metal = GP.metal && D.pool.includes('bulga') && R() < GP.metal ? 1 : 0;
@@ -265,7 +275,7 @@ export function loadStage(i) {
   $.DIFF = 1 + i * 0.045;
   const D = STAGES[i],
     lv = i === 0 ? STAGE0 : genStage(i);
-  const plat = (D.plat || GB_PLAT).map(([dx, y, w]) => [lv.x0 + dx, y, w, 24]);
+  const plat = (D.plat || GB_PLAT).map(([dx, y, w]) => [lv.x0 + dx, y, w, 12]);
   const raw = lv.solids.concat(i === 0 ? [[3750, 460, 950, 80]] : []).concat(plat);
   $.solids = raw.map(([x, y, w, h, m, o]) => ({
     ...(o || {}),
