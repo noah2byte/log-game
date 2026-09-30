@@ -15,7 +15,7 @@ import { renderTitle } from './ui/title';
 import { updateIntro, renderIntro } from './story/cutscene';
 import { step } from './entities/player';
 import { render } from './render/world';
-import { initTouch, updateTouchVisibility } from './core/touch';
+import { initTouch, updateTouchVisibility, isTouchDevice } from './core/touch';
 import { DEBUG } from './config';
 import { warpStage } from './world/stages';
 import { damage } from './combat/damage';
@@ -68,6 +68,27 @@ function loop(now: number): void {
   requestAnimationFrame(loop);
 }
 
+/** PC 전체 화면: 오른쪽 위 버튼과 F 키. 모바일은 터치 조작 쪽에 같은 기능이 있다 */
+function initFullscreen(stage: HTMLElement): void {
+  if (!document.fullscreenEnabled) return; // 전체 화면이 허용되지 않은 iframe 등에서는 버튼을 만들지 않는다
+  const toggle = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => {});
+  };
+  if (!isTouchDevice()) {
+    const b = document.createElement('button');
+    b.className = 'fs-btn';
+    b.type = 'button';
+    b.title = '전체 화면 (F)';
+    b.textContent = '⛶';
+    b.addEventListener('click', toggle);
+    stage.append(b);
+  }
+  addEventListener('keydown', (e) => {
+    if (e.code === 'KeyF' && !e.repeat) toggle();
+  });
+}
+
 async function boot(): Promise<void> {
   initAudioPrefs();
   drawLoading(0, 1);
@@ -79,6 +100,7 @@ async function boot(): Promise<void> {
   preloadRest();
   initInput();
   initTouch(document.querySelector('.stage') as HTMLElement);
+  initFullscreen(document.querySelector('.stage') as HTMLElement);
   $.mode = 'title';
   music('cut');
   last = performance.now();

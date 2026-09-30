@@ -86,3 +86,20 @@ kbd{font-family:inherit;background:var(--key);color:var(--ink);border:1px solid 
   .tc-btn.tc-small { width: 14vw; height: 14vw; font-size: 12px; }
   .touch .tc-rotate { display: block; text-align: center; color: #a8977b; font-size: 13px; margin-top: calc(22vw + 70px); }
 }
+
+/* ---- 게임 페이지 레이아웃 ----
+   게임 주소로 바로 열었을 때도 화면을 게임에 양보한다. 처음엔 설명 페이지처럼 제목·설명 아래 캔버스를 뒀는데,
+   창 크기에 따라 게임이 작게 보이거나 스크롤이 생겨서 창에 꽉 맞추는 방식으로 바꿨다 */
+html, body { height: 100%; }
+body { margin: 0; background: #0d0915; overflow: hidden; }
+main { max-width: none; padding: 0; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+h1, .lede { display: none; }
+.stage { border: 0; box-shadow: none; margin: 0 auto; width: min(100vw, calc((100dvh - 40px) * 16 / 9)); }
+.keys { justify-content: center; margin: 8px 0 0; font-size: 0.8rem; color: #a8977b; }
+kbd { background: #2a241e; color: #ecdfc2; border-color: #4a3f33; }
+:fullscreen .stage { width: min(100vw, calc(100dvh * 16 / 9)); }
+:fullscreen .keys { display: none; }
+.fs-btn { position: absolute; top: 10px; right: 10px; z-index: 3; width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid rgba(243,228,194,.35); background: rgba(36,30,25,.6); color: #f3e4c2; font-size: 16px; cursor: pointer; opacity: .55; }
+.fs-btn:hover { opacity: 1; }
+.touch .fs-btn { display: none; }
